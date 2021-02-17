@@ -28,8 +28,8 @@ RMSXZ = 1.0e-3          # Beam divergence in x-z plane [rad]
 RMSYZ = 1.0e-3          # Beam divergence in y-z plane [rad]
 
 # Photo-detector position
-XPD = 0.0
-YPD = -2.5e-3
+XPD = 0.5e-3
+YPD = 0.0
 
 # Pendulum bob geometry
 DBOB = 25.0e-3
@@ -49,7 +49,7 @@ for x in range(nbins):
     XBOB = LBOB*math.sin(THETABOB)
     YBOB = LBOB*(1.0-math.cos(THETABOB))
     bobpos.append([XBOB,YBOB,THETABOB])
-    counters.append([0,0])
+    counters.append([0,0,0,0])
 print('bobpos',bobpos)
 print('counters',counters)
 
@@ -83,11 +83,12 @@ for i in range(NTRIES):
 # (ignoring position of the bob)
     lpd = False
     rsqp = (xp - XPD)**2 + (yp - YPD)**2
-    if rsqp < 0.11e-6/3.14:          # Current PT has area of 0.11 mm^2 
+    if rsqp < 0.11e-6/3.141596:     # Current PT has area of 0.11 mm^2 
        lpd = True
        nsuccess = nsuccess + 1
 
-# Now loop through the bob positions
+# Now loop through the bob positions. 
+# We use the same MC rays - so the measurements are not statistically independent
     for x in range(nbins):
         pos = bobpos[x]
 #        print('Pos ',x,pos[0],pos[1])
@@ -95,24 +96,31 @@ for i in range(NTRIES):
         lShadow = False
         if rsqb < RBOB*RBOB:
            lShadow = True
+
 # Update appropriate counters
-           counterx = counters[x]
+        counterx = counters[x]
 # Independent of lpd increment the first counter for Shadow
-           counterx[0] = counterx[0] + 1
-           if lpd:
-              counterx[1] = counterx[1] + 1
-           counters[x] = counterx
+        if lShadow:
+           counterx[0] = counterx[0] + 1    # laser photon in bob shadow
+        else:
+           counterx[1] = counterx[1] + 1    # laser photon not in bob shadow
+        if lpd:
+           if lShadow:    
+              counterx[2] = counterx[2] + 1 # detectable laser photon but undetected because in bob shadow
+           else:
+              counterx[3] = counterx[3] + 1 # detected laser photon not in bob shadow 
+        counters[x] = counterx
 
 print('Ntries       = ',NTRIES)
 print('Nsuccesses   = ',nsuccess)
 p0 = nsuccess/NTRIES
 q0 = 1.0-p0
 error0 = math.sqrt(p0*q0/NTRIES)
-print('PT laser beam acceptance                = ',p0,'+-',error0)
+print('PT laser beam acceptance                = ',p0,'+-',error0)  # Detectable photons
 print('counters',counters)
 
 resultsfile = open("ResultsFile.dat", "w")
-print('#  dtheta [rad],   non-shadow efficiency,    error',file=resultsfile) 
+print('#  dtheta [rad],   non-shadow efficiency,    error,  absolute efficiency,   error',file=resultsfile) 
 for x in range(nbins):
     print(' ')
     print('DTH = ',DTH[x])
@@ -124,17 +132,19 @@ for x in range(nbins):
     print('Bob shadow laser beam acceptance        = ',p1,'+-',error1)
     print('Bob non-shadow laser  acceptance        = ',q1,'+-',error1)
 
-    p2 = counterx[1]/NTRIES
+    p2 = counterx[3]/NTRIES
     q2 = 1.0-p2
     error2 = math.sqrt(p2*q2/NTRIES)
-    print('Detected fraction (Bob shadow & PT)     = ',p2,'+-',error2)
+    print('Detected fraction (bob non-shadow & PT) = ',p2,'+-',error2)
 
-    p3 = counterx[1]/nsuccess
+    p3 = counterx[2]/nsuccess
     q3 = 1.0-p3
     error3 = math.sqrt(p3*q3/nsuccess)
     print('Shadow efficiency                       = ',p3,'+-',error3)
+# q3 is efficiency for PT to accept a photon as a fraction of all photons that would be 
+# accepted by the PT if ther were no obstruction by the bob
     print('Non-shadow efficiency                   = ',q3,'+-',error3)
 
-    print(DTH[x],q3,error3,file=resultsfile)
+    print(DTH[x],q3,error3,p2,error2,file=resultsfile)
 resultsfile.close()
 
