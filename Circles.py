@@ -28,13 +28,13 @@ RMSXZ = 1.0e-3          # Beam divergence in x-z plane [rad]
 RMSYZ = 1.0e-3          # Beam divergence in y-z plane [rad]
 
 # Photo-detector position
-XPD = -0.5e-3
-YPD = 0.0
+XPD = 0.0
+YPD = -2.5e-3
 
 # Pendulum bob geometry
 DBOB = 25.0e-3
 RBOB = 0.5*DBOB  # approx 1 inch diameter
-LBOB = 2.0       # length in meters
+LBOB = 2.5       # length in meters
 # Assume for now center of bob according to an angular displacement of D/2L
 THETAB = RBOB/LBOB
 DTH = [ -0.0005, -0.00045, -0.0004, -0.00035, -0.0003, -0.00025, -0.0002, -0.00015, -0.0001, -0.00005, 0.0,
